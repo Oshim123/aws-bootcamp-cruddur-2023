@@ -12,7 +12,10 @@
   - Exported diagram as **PDF** (saved in repo under `/journal/assets/`)  
 
 ## 📚 Homework Challenges  
-- ✅ Set up AWS CLI and tested billing alarms/budgets through CLI    
+- ✅ Set up AWS CLI and tested billing alarms/budgets through CLI
+- ✅ Destroyed root account access keys (only IAM users used)s
+- ✅ Reviewed all Well-Architected Framework Pillars (no lenses)
+- ✅ Created CI/CD Architecture Diagram in Lucidchart
 
 ## 💡 Reflection
 - **Hardest part**: Creating the architecture diagram from scratch.  
