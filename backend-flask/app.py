@@ -32,19 +32,9 @@ import logging
 
 # Rollbar ------
 from time import strftime
-import os
 import rollbar
 import rollbar.contrib.flask
 from flask import got_request_exception
-
-# Configuring Logger to Use CloudWatch
-# LOGGER = logging.getLogger(__name__)
-# LOGGER.setLevel(logging.DEBUG)
-# console_handler = logging.StreamHandler()
-# cw_handler = watchtower.CloudWatchLogHandler(log_group='cruddur')
-# LOGGER.addHandler(console_handler)
-# LOGGER.addHandler(cw_handler)
-# LOGGER.info("test log")
 
 # HoneyComb ---------
 # Initialize tracing and an exporter that can send data to Honeycomb
@@ -57,9 +47,9 @@ xray_url = os.getenv("AWS_XRAY_URL")
 xray_recorder.configure(service='backend-flask', dynamic_naming=xray_url)
 
 # OTEL ----------
-# Show this in the logs within the backend-flask app (STDOUT)
-#simple_processor = SimpleSpanProcessor(ConsoleSpanExporter())
-#provider.add_span_processor(simple_processor)
+# To also print spans to STDOUT during dev, uncomment below:
+# simple_processor = SimpleSpanProcessor(ConsoleSpanExporter())
+# provider.add_span_processor(simple_processor)
 
 trace.set_tracer_provider(provider)
 tracer = trace.get_tracer(__name__)
@@ -74,12 +64,11 @@ XRayMiddleware(app, xray_recorder)
 FlaskInstrumentor().instrument_app(app)
 RequestsInstrumentor().instrument()
 
-
 frontend = os.getenv('FRONTEND_URL')
 backend = os.getenv('BACKEND_URL')
 origins = [frontend, backend]
 cors = CORS(
-  app, 
+  app,
   resources={r"/api/*": {"origins": origins}},
   expose_headers="location,link",
   allow_headers="content-type,if-modified-since",
@@ -87,34 +76,37 @@ cors = CORS(
 )
 
 # CloudWatch Logs -----
-#@app.after_request
-#def after_request(response):
-#    timestamp = strftime('[%Y-%b-%d %H:%M]')
-#    LOGGER.error('%s %s %s %s %s %s', timestamp, request.remote_addr, request.method, request.scheme, request.full_path, response.status)
-#    return response
+# Uncomment to enable CloudWatch logging
+# LOGGER = logging.getLogger(__name__)
+# LOGGER.setLevel(logging.DEBUG)
+# console_handler = logging.StreamHandler()
+# cw_handler = watchtower.CloudWatchLogHandler(log_group='cruddur')
+# LOGGER.addHandler(console_handler)
+# LOGGER.addHandler(cw_handler)
+# LOGGER.info("CloudWatch logging started...")
 
-# Rollbar ----------
+# @app.after_request
+# def after_request(response):
+#     timestamp = strftime('[%Y-%b-%d %H:%M]')
+#     LOGGER.error('%s %s %s %s %s %s', timestamp, request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+#     return response
+
+# Rollbar ---------- (no before_first_request; initialize immediately)
 rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN')
-@app.before_first_request
-def init_rollbar():
-    """init rollbar module"""
-    rollbar.init(
-        # access token
-        rollbar_access_token,
-        # environment name
-        'production',
-        # server root directory, makes tracebacks prettier
-        root=os.path.dirname(os.path.realpath(__file__)),
-        # flask already sets up logging
-        allow_logging_basic_config=False)
-
-    # send exceptions from `app` to rollbar, using flask's signal system.
-    got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
+if rollbar_access_token:
+  rollbar.init(
+      access_token=rollbar_access_token,
+      environment='production',
+      root=os.path.dirname(os.path.realpath(__file__)),
+      allow_logging_basic_config=False
+  )
+  # send exceptions from `app` to rollbar, using flask's signal system.
+  got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
 
 @app.route('/rollbar/test')
 def rollbar_test():
-    rollbar.report_message('Hello World!', 'warning')
-    return "Hello World!"
+  rollbar.report_message('Hello World!', 'warning')
+  return "Hello World!"
 
 @app.route("/api/message_groups", methods=['GET'])
 def data_message_groups():
@@ -129,13 +121,11 @@ def data_message_groups():
 def data_messages(handle):
   user_sender_handle = 'andrewbrown'
   user_receiver_handle = request.args.get('user_reciever_handle')
-
   model = Messages.run(user_sender_handle=user_sender_handle, user_receiver_handle=user_receiver_handle)
   if model['errors'] is not None:
     return model['errors'], 422
   else:
     return model['data'], 200
-  return
 
 @app.route("/api/messages", methods=['POST','OPTIONS'])
 @cross_origin()
@@ -143,13 +133,11 @@ def data_create_message():
   user_sender_handle = 'andrewbrown'
   user_receiver_handle = request.json['user_receiver_handle']
   message = request.json['message']
-
   model = CreateMessage.run(message=message,user_sender_handle=user_sender_handle,user_receiver_handle=user_receiver_handle)
   if model['errors'] is not None:
     return model['errors'], 422
   else:
     return model['data'], 200
-  return
 
 @app.route("/api/activities/home", methods=['GET'])
 @xray_recorder.capture('activities_home')
@@ -174,7 +162,6 @@ def data_search():
     return model['errors'], 422
   else:
     return model['data'], 200
-  return
 
 @app.route("/api/activities", methods=['POST','OPTIONS'])
 @cross_origin()
@@ -187,7 +174,6 @@ def data_activities():
     return model['errors'], 422
   else:
     return model['data'], 200
-  return
 
 @app.route("/api/activities/<string:activity_uuid>", methods=['GET'])
 @xray_recorder.capture('activities_show')
@@ -205,7 +191,7 @@ def data_activities_reply(activity_uuid):
     return model['errors'], 422
   else:
     return model['data'], 200
-  return
 
 if __name__ == "__main__":
-  app.run(debug=True)
+  # Listen on all interfaces for Docker/Gitpod and ensure port matches your compose mapping
+  app.run(debug=True, host="0.0.0.0", port=4567)
