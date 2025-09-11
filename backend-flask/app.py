@@ -30,6 +30,20 @@ from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
 import watchtower
 import logging
 
+# ---------------- CloudWatch Logger ----------------
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
+
+# Send logs to both console and CloudWatch
+console_handler = logging.StreamHandler()
+cw_handler = watchtower.CloudWatchLogHandler(log_group="cruddur")
+
+LOGGER.addHandler(console_handler)
+LOGGER.addHandler(cw_handler)
+
+# Test log to confirm CloudWatch works
+LOGGER.info("CloudWatch Logs initialized ✅")
+
 # Rollbar ------
 from time import strftime
 import rollbar
