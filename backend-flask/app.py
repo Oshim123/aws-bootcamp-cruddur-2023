@@ -30,6 +30,13 @@ from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
 import watchtower
 import logging
 
+# Rollbar ------
+from time import strftime
+import os
+import rollbar
+import rollbar.contrib.flask
+from flask import got_request_exception
+
 # ---------------- CloudWatch Logger ----------------
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
