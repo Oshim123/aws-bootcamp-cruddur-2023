@@ -37,7 +37,6 @@ import rollbar.contrib.flask
 from flask import got_request_exception
 
 # ---------------- Flask app ----------------
-# ⚠️ Moved this UP so `app` exists before Rollbar uses it
 app = Flask(__name__)
 
 # ---------------- CloudWatch Logger ----------------
@@ -87,13 +86,10 @@ cors = CORS(
   methods="OPTIONS,GET,HEAD,POST"
 )
 
-# ---------------- Rollbar init ----------------
-rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN')  # may be empty in dev
+# ---------------- Rollbar init (Option 2: immediate init) ----------------
+rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN') or ""
 
-# Initialize once before handling requests
-@app.before_first_request
-def init_rollbar():
-    """init rollbar module"""
+if rollbar_access_token:
     rollbar.init(
         rollbar_access_token,
         'production',
