@@ -65,10 +65,10 @@ provider.add_span_processor(simple_processor)
 trace.set_tracer_provider(provider)
 tracer = trace.get_tracer(__name__)
 
-# (Optional) X-Ray — keep commented unless configured
-# xray_url = os.getenv("AWS_XRAY_URL")
-# xray_recorder.configure(service='backend-flask', dynamic_naming=xray_url)
-# XRayMiddleware(app, xray_recorder)
+# X-Ray ----------
+xray_url = os.getenv("AWS_XRAY_URL")
+xray_recorder.configure(service='backend-flask', dynamic_naming=xray_url)
+XRayMiddleware(app, xray_recorder)
 
 # Auto-instrument Flask + requests for OTel
 FlaskInstrumentor().instrument_app(app)
@@ -135,12 +135,16 @@ def data_create_message():
   else:
     return model['data'], 200
 
+# ✅ Add X-Ray capture here
 @app.route("/api/activities/home", methods=['GET'])
+@xray_recorder.capture("activities_home")
 def data_home():
   data = HomeActivities.run()
   return data, 200
 
+# ✅ Add X-Ray capture here
 @app.route("/api/activities/@<string:handle>", methods=['GET'])
+@xray_recorder.capture("activities_users")
 def data_handle(handle):
   model = UserActivities.run(handle)
   if model['errors'] is not None:
@@ -169,7 +173,9 @@ def data_activities():
   else:
     return model['data'], 200
 
+# ✅ Add X-Ray capture here
 @app.route("/api/activities/<string:activity_uuid>", methods=['GET'])
+@xray_recorder.capture("activities_show")
 def data_show_activity(activity_uuid):
   data = ShowActivity.run(activity_uuid=activity_uuid)
   return data, 200
