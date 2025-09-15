@@ -139,8 +139,14 @@ def data_create_message():
 @app.route("/api/activities/home", methods=['GET'])
 @xray_recorder.capture("activities_home")
 def data_home():
-  data = HomeActivities.run()
-  return data, 200
+  with tracer.start_as_current_span("custom.activities_home") as span:
+      span.set_attribute("user.handle", "oshimthakur")
+      span.set_attribute("route", "/api/activities/home")
+
+      data = HomeActivities.run()
+      span.set_attribute("result.count", len(data) if data else 0)
+
+      return data, 200
 
 # ✅ Add X-Ray capture here
 @app.route("/api/activities/@<string:handle>", methods=['GET'])
