@@ -1,39 +1,41 @@
 import './SigninPage.css';
 import React from "react";
-import {ReactComponent as Logo} from '../components/svg/logo.svg';
+import { ReactComponent as Logo } from '../components/svg/logo.svg';
 import { Link } from "react-router-dom";
 
-// [TODO] Authenication
-import Cookies from 'js-cookie'
+// ✅ Amplify v6 Auth imports
+import { signIn } from "aws-amplify/auth";
 
 export default function SigninPage() {
-
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [errors, setErrors] = React.useState('');
 
   const onsubmit = async (event) => {
     event.preventDefault();
-    setErrors('')
-    console.log('onsubmit')
-    if (Cookies.get('user.email') === email && Cookies.get('user.password') === password){
-      Cookies.set('user.logged_in', true)
-      window.location.href = "/"
-    } else {
-      setErrors("Email and password is incorrect or account doesn't exist")
-    }
-    return false
-  }
+    setErrors('');
+    try {
+      const { isSignedIn, nextStep } = await signIn({ username: email, password });
+      console.log("signIn result:", isSignedIn, nextStep);
 
-  const email_onchange = (event) => {
-    setEmail(event.target.value);
-  }
-  const password_onchange = (event) => {
-    setPassword(event.target.value);
-  }
+      if (isSignedIn) {
+        // ✅ Save token (optional, useful for API calls)
+        // Amplify auto-manages tokens, but some backend code may still read from localStorage
+        window.location.href = "/";
+      }
+    } catch (error) {
+      console.error("Sign in error:", error);
+      if (error.message) {
+        setErrors(error.message);
+      } else {
+        setErrors("Sign in failed. Please try again.");
+      }
+    }
+    return false;
+  };
 
   let el_errors;
-  if (errors){
+  if (errors) {
     el_errors = <div className='errors'>{errors}</div>;
   }
 
@@ -54,7 +56,7 @@ export default function SigninPage() {
               <input
                 type="text"
                 value={email}
-                onChange={email_onchange} 
+                onChange={(e) => setEmail(e.target.value)} 
               />
             </div>
             <div className='field text_field password'>
@@ -62,7 +64,7 @@ export default function SigninPage() {
               <input
                 type="password"
                 value={password}
-                onChange={password_onchange} 
+                onChange={(e) => setPassword(e.target.value)} 
               />
             </div>
           </div>
@@ -71,7 +73,6 @@ export default function SigninPage() {
             <Link to="/forgot" className="forgot-link">Forgot Password?</Link>
             <button type='submit'>Sign In</button>
           </div>
-
         </form>
         <div className="dont-have-an-account">
           <span>
@@ -80,7 +81,6 @@ export default function SigninPage() {
           <Link to="/signup">Sign up!</Link>
         </div>
       </div>
-
     </article>
   );
 }

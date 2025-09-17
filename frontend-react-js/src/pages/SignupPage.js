@@ -1,14 +1,12 @@
 import './SignupPage.css';
 import React from "react";
-import {ReactComponent as Logo} from '../components/svg/logo.svg';
+import { ReactComponent as Logo } from '../components/svg/logo.svg';
 import { Link } from "react-router-dom";
 
-// [TODO] Authenication
-import Cookies from 'js-cookie'
+// ✅ Amplify v6 Auth imports
+import { signUp } from "aws-amplify/auth";
 
 export default function SignupPage() {
-
-  // Username is Eamil
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [username, setUsername] = React.useState('');
@@ -17,32 +15,32 @@ export default function SignupPage() {
 
   const onsubmit = async (event) => {
     event.preventDefault();
-    console.log('SignupPage.onsubmit')
-    // [TODO] Authenication
-    Cookies.set('user.name', name)
-    Cookies.set('user.username', username)
-    Cookies.set('user.email', email)
-    Cookies.set('user.password', password)
-    Cookies.set('user.confirmation_code',1234)
-    window.location.href = `/confirm?email=${email}`
-    return false
-  }
+    setErrors('');
 
-  const name_onchange = (event) => {
-    setName(event.target.value);
-  }
-  const email_onchange = (event) => {
-    setEmail(event.target.value);
-  }
-  const username_onchange = (event) => {
-    setUsername(event.target.value);
-  }
-  const password_onchange = (event) => {
-    setPassword(event.target.value);
-  }
+    try {
+      const { isSignUpComplete, userId, nextStep } = await signUp({
+        username: email,
+        password,
+        options: {
+          userAttributes: {
+            name,
+            email,
+            preferred_username: username
+          },
+        },
+      });
+
+      console.log("Signup result:", isSignUpComplete, userId, nextStep);
+      window.location.href = `/confirm?email=${email}`;
+    } catch (error) {
+      console.error("Signup error:", error);
+      setErrors(error.message || "Signup failed. Please try again.");
+    }
+    return false;
+  };
 
   let el_errors;
-  if (errors){
+  if (errors) {
     el_errors = <div className='errors'>{errors}</div>;
   }
 
@@ -63,7 +61,7 @@ export default function SignupPage() {
               <input
                 type="text"
                 value={name}
-                onChange={name_onchange} 
+                onChange={(e) => setName(e.target.value)} 
               />
             </div>
 
@@ -72,7 +70,7 @@ export default function SignupPage() {
               <input
                 type="text"
                 value={email}
-                onChange={email_onchange} 
+                onChange={(e) => setEmail(e.target.value)} 
               />
             </div>
 
@@ -81,7 +79,7 @@ export default function SignupPage() {
               <input
                 type="text"
                 value={username}
-                onChange={username_onchange} 
+                onChange={(e) => setUsername(e.target.value)} 
               />
             </div>
 
@@ -90,7 +88,7 @@ export default function SignupPage() {
               <input
                 type="password"
                 value={password}
-                onChange={password_onchange} 
+                onChange={(e) => setPassword(e.target.value)} 
               />
             </div>
           </div>
@@ -100,9 +98,7 @@ export default function SignupPage() {
           </div>
         </form>
         <div className="already-have-an-account">
-          <span>
-            Already have an account?
-          </span>
+          <span>Already have an account?</span>
           <Link to="/signin">Sign in!</Link>
         </div>
       </div>

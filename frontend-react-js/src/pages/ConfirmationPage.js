@@ -1,10 +1,10 @@
 import './ConfirmationPage.css';
 import React from "react";
 import { useParams } from 'react-router-dom';
-import {ReactComponent as Logo} from '../components/svg/logo.svg';
+import { ReactComponent as Logo } from '../components/svg/logo.svg';
 
-// [TODO] Authenication
-import Cookies from 'js-cookie'
+// ✅ Amplify v6 Auth imports
+import { confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
 
 export default function ConfirmationPage() {
   const [email, setEmail] = React.useState('');
@@ -14,57 +14,51 @@ export default function ConfirmationPage() {
 
   const params = useParams();
 
-  const code_onchange = (event) => {
-    setCode(event.target.value);
-  }
-  const email_onchange = (event) => {
-    setEmail(event.target.value);
-  }
+  const code_onchange = (event) => setCode(event.target.value);
+  const email_onchange = (event) => setEmail(event.target.value);
 
   const resend_code = async (event) => {
-    console.log('resend_code')
-    // [TODO] Authenication
-  }
+    event.preventDefault();
+    setErrors('');
+    try {
+      await resendSignUpCode({ username: email });
+      setCodeSent(true);
+    } catch (err) {
+      console.error("Resend error:", err);
+      setErrors(err.message);
+    }
+  };
 
   const onsubmit = async (event) => {
     event.preventDefault();
-    console.log('ConfirmationPage.onsubmit')
-    // [TODO] Authenication
-    if (Cookies.get('user.email') === undefined || Cookies.get('user.email') === '' || Cookies.get('user.email') === null){
-      setErrors("You need to provide an email in order to send Resend Activiation Code")   
-    } else {
-      if (Cookies.get('user.email') === email){
-        if (Cookies.get('user.confirmation_code') === code){
-          Cookies.set('user.logged_in',true)
-          window.location.href = "/"
-        } else {
-          setErrors("Code is not valid")
-        }
-      } else {
-        setErrors("Email is invalid or cannot be found.")   
-      }
+    setErrors('');
+    try {
+      await confirmSignUp({ username: email, confirmationCode: code });
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Confirm error:", error);
+      setErrors(error.message);
     }
-    return false
-  }
+    return false;
+  };
+
+  React.useEffect(() => {
+    if (params.email) {
+      setEmail(params.email);
+    }
+  }, [params.email]);
 
   let el_errors;
-  if (errors){
+  if (errors) {
     el_errors = <div className='errors'>{errors}</div>;
   }
 
-
   let code_button;
-  if (codeSent){
-    code_button = <div className="sent-message">A new activation code has been sent to your email</div>
+  if (codeSent) {
+    code_button = <div className="sent-message">A new activation code has been sent to your email</div>;
   } else {
     code_button = <button className="resend" onClick={resend_code}>Resend Activation Code</button>;
   }
-
-  React.useEffect(()=>{
-    if (params.email) {
-      setEmail(params.email)
-    }
-  }, [])
 
   return (
     <article className="confirm-article">
@@ -72,10 +66,7 @@ export default function ConfirmationPage() {
         <Logo className='logo' />
       </div>
       <div className='recover-wrapper'>
-        <form
-          className='confirm_form'
-          onSubmit={onsubmit}
-        >
+        <form className='confirm_form' onSubmit={onsubmit}>
           <h2>Confirm your Email</h2>
           <div className='fields'>
             <div className='field text_field email'>

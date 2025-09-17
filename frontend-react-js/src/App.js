@@ -12,16 +12,17 @@ import ConfirmationPage from './pages/ConfirmationPage';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
+// ✅ Amplify v6 imports
 import { Amplify } from 'aws-amplify';
 
-// ✅ Amplify configuration (v6 format only)
-// Remove old keys like AWS_PROJECT_REGION / aws_cognito_region
-// Keep only the Auth block
+// ✅ Amplify v6 configuration with your EU West 2 settings
 Amplify.configure({
   Auth: {
-    region: "eu-west-2",                        // your region
-    userPoolId: "eu-west-2_HKcHnrgiB",          // your User Pool ID
-    userPoolWebClientId: "cte794vg6jirnr3eqtt2v500i" // your App Client ID
+    Cognito: {
+      region: 'eu-west-2',
+      userPoolId: 'eu-west-2_HKcHnrgiB',
+      userPoolClientId: 'cte794vg6jirnr3eqtt2v500i'
+    }
   }
 });
 
