@@ -81,10 +81,12 @@ origins = [frontend, backend]
 cors = CORS(
   app,
   resources={r"/api/*": {"origins": origins}},
-  expose_headers="location,link",
-  allow_headers="content-type,if-modified-since",
-  methods="OPTIONS,GET,HEAD,POST"
+  expose_headers=["Authorization", "Location", "Link"],
+  allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+  methods=["OPTIONS", "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
+  supports_credentials=True
 )
+
 
 # ---------------- Rollbar init (Option 2: immediate init) ----------------
 rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN') or ""

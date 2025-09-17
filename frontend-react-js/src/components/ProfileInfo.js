@@ -14,7 +14,7 @@ export default function ProfileInfo(props) {
 
   const handleSignOut = async () => {
     try {
-      await signOut({ global: true });   // ✅ v6 signOut
+      await signOut();
       window.location.href = "/";
       localStorage.removeItem("access_token");
     } catch (error) {

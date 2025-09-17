@@ -21,10 +21,16 @@ Amplify.configure({
     Cognito: {
       region: 'eu-west-2',
       userPoolId: 'eu-west-2_HKcHnrgiB',
-      userPoolClientId: 'cte794vg6jirnr3eqtt2v500i'
+      userPoolClientId: 'cte794vg6jirnr3eqtt2v500i',
+      loginWith: { 
+        email: true   // allow sign-in with email
+        // you could also add: username: true, phone: true
+      }
     }
   }
 });
+
+
 
 // ✅ React Router setup
 const router = createBrowserRouter([

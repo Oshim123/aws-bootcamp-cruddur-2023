@@ -1,8 +1,9 @@
+// HomeFeedPage.js - Improved version with proper v6 auth
 import './HomeFeedPage.css';
 import React from "react";
 
-// ✅ Amplify v6 import for getCurrentUser
-import { getCurrentUser } from 'aws-amplify/auth';
+// ✅ Amplify v6 imports
+import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 
 import DesktopNavigation from '../components/DesktopNavigation';
 import DesktopSidebar from '../components/DesktopSidebar';
@@ -21,12 +22,30 @@ export default function HomeFeedPage() {
   const loadData = async () => {
     try {
       const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/home`;
+      
+      let headers = {
+        'Content-Type': 'application/json'
+      };
+
+      // Try to get v6 auth session
+      try {
+        const session = await fetchAuthSession();
+        if (session?.tokens?.accessToken) {
+          headers['Authorization'] = `Bearer ${session.tokens.accessToken.toString()}`;
+        }
+      } catch (authErr) {
+        // If no auth session, try fallback to localStorage (for compatibility)
+        const token = localStorage.getItem("access_token");
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
       const res = await fetch(backend_url, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`
-        },
+        headers: headers,
         method: "GET"
       });
+
       let resJson = await res.json();
       if (res.status === 200) {
         setActivities(resJson);
@@ -40,10 +59,10 @@ export default function HomeFeedPage() {
 
   const checkAuth = async () => {
     try {
-      const cognito_user = await getCurrentUser();  // ✅ v6 getCurrentUser
+      const cognito_user = await getCurrentUser();
       console.log('user', cognito_user);
       setUser({
-        display_name: cognito_user.signInDetails.loginId,
+        display_name: cognito_user.signInDetails?.loginId || cognito_user.username,
         handle: cognito_user.username
       });
     } catch (err) {
