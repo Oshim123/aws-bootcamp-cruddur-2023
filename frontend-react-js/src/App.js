@@ -14,16 +14,14 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import { Amplify } from 'aws-amplify';
 
-// ✅ Amplify configuration
+// ✅ Amplify configuration (v6 format only)
+// Remove old keys like AWS_PROJECT_REGION / aws_cognito_region
+// Keep only the Auth block
 Amplify.configure({
-  "AWS_PROJECT_REGION": process.env.REACT_APP_AWS_PROJECT_REGION,      // e.g. eu-west-2
-  "aws_cognito_region": process.env.REACT_APP_AWS_COGNITO_REGION,      // usually same as project region
-  "aws_user_pools_id": process.env.REACT_APP_AWS_USER_POOLS_ID,        // e.g. eu-west-2_AbCdEf123
-  "aws_user_pools_web_client_id": process.env.REACT_APP_CLIENT_ID,     // your Cognito App Client ID
   Auth: {
-    region: process.env.REACT_APP_AWS_PROJECT_REGION,                  
-    userPoolId: process.env.REACT_APP_AWS_USER_POOLS_ID,               
-    userPoolWebClientId: process.env.REACT_APP_CLIENT_ID               
+    region: "eu-west-2",                        // your region
+    userPoolId: "eu-west-2_HKcHnrgiB",          // your User Pool ID
+    userPoolWebClientId: "cte794vg6jirnr3eqtt2v500i" // your App Client ID
   }
 });
 
