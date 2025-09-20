@@ -1,5 +1,4 @@
-from flask import Flask
-from flask import request
+from flask import Flask, request
 from flask_cors import CORS, cross_origin
 import os
 
@@ -63,9 +62,9 @@ provider.add_span_processor(simple_processor)
 trace.set_tracer_provider(provider)
 tracer = trace.get_tracer(__name__)
 
-# X-Ray ----------
+# ---------------- X-Ray ----------------
 xray_url = os.getenv("AWS_XRAY_URL")
-xray_recorder.configure(service='backend-flask', dynamic_naming=xray_url)
+xray_recorder.configure(service="backend-flask", dynamic_naming=xray_url)
 XRayMiddleware(app, xray_recorder)
 
 # Auto-instrument Flask + requests for OTel
@@ -73,38 +72,40 @@ FlaskInstrumentor().instrument_app(app)
 RequestsInstrumentor().instrument()
 
 # ---------------- CORS ----------------
-frontend = os.getenv('FRONTEND_URL')
-backend = os.getenv('BACKEND_URL')
+frontend = os.getenv("FRONTEND_URL")
+backend = os.getenv("BACKEND_URL")
 origins = [frontend, backend]
 cors = CORS(
-  app,
-  resources={r"/api/*": {"origins": origins}},
-  expose_headers=["Authorization", "Location", "Link"],
-  allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
-  methods=["OPTIONS", "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
-  supports_credentials=True
+    app,
+    resources={r"/api/*": {"origins": origins}},
+    expose_headers=["Authorization", "Location", "Link"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    methods=["OPTIONS", "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
+    supports_credentials=True
 )
 
 # ---------------- Rollbar init ----------------
-rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN') or ""
+rollbar_access_token = os.getenv("ROLLBAR_ACCESS_TOKEN") or ""
 if rollbar_access_token:
     rollbar.init(
         rollbar_access_token,
-        'production',
+        "production",
         root=os.path.dirname(os.path.realpath(__file__)),
-        allow_logging_basic_config=False
+        allow_logging_basic_config=False,
     )
     got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
 
-@app.route('/rollbar/test')
+
+@app.route("/rollbar/test")
 def rollbar_test():
-    rollbar.report_message('Hello World!', 'warning')
+    rollbar.report_message("Hello World!", "warning")
     return "Hello World!"
 
+
 # ---------------- Cognito JWT Validation ----------------
-COGNITO_REGION = os.getenv("REACT_APP_AWS_PROJECT_REGION")   # e.g. eu-west-2
-USERPOOL_ID = os.getenv("REACT_APP_AWS_USER_POOLS_ID")
-CLIENT_ID = os.getenv("REACT_APP_AWS_USER_POOLS_WEB_CLIENT_ID")
+COGNITO_REGION = os.getenv("AWS_COGNITO_REGION")     # ✅ backend vars
+USERPOOL_ID = os.getenv("AWS_COGNITO_USERPOOL_ID")
+CLIENT_ID = os.getenv("AWS_COGNITO_CLIENT_ID")
 
 jwks_url = f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USERPOOL_ID}/.well-known/jwks.json"
 jwks = requests.get(jwks_url).json()
@@ -113,20 +114,20 @@ def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
-        if 'Authorization' in request.headers:
-            token = request.headers['Authorization'].split(" ")[1]
+        if "Authorization" in request.headers:
+            token = request.headers["Authorization"].split(" ")[1]
 
         if not token:
             return {"error": "Token missing"}, 401
 
         try:
             header = jwt.get_unverified_header(token)
-            key = next(k for k in jwks['keys'] if k['kid'] == header['kid'])
+            key = next(k for k in jwks["keys"] if k["kid"] == header["kid"])
             public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
             decoded = jwt.decode(
                 token,
                 public_key,
-                algorithms=['RS256'],
+                algorithms=["RS256"],
                 audience=CLIENT_ID
             )
             request.user = decoded  # attach decoded claims
@@ -136,8 +137,9 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
 # ---------------- Routes ----------------
-@app.route("/api/activities/home", methods=['GET'])
+@app.route("/api/activities/home", methods=["GET"])
 @xray_recorder.capture("activities_home")
 @token_required
 def data_home():
@@ -147,17 +149,19 @@ def data_home():
         span.set_attribute("result.count", len(data) if data else 0)
         return data, 200
 
-@app.route("/api/activities/@<string:handle>", methods=['GET'])
+
+@app.route("/api/activities/@<string:handle>", methods=["GET"])
 @xray_recorder.capture("activities_users")
 @token_required
 def data_handle(handle):
     model = UserActivities.run(handle)
-    if model['errors'] is not None:
-        return model['errors'], 422
+    if model["errors"] is not None:
+        return model["errors"], 422
     else:
-        return model['data'], 200
+        return model["data"], 200
+
 
 # (other routes can stay unprotected for now until you want them gated by login)
 
 if __name__ == "__main__":
-  app.run(debug=True)
+    app.run(debug=True)
