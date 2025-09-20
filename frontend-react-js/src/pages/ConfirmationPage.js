@@ -33,7 +33,7 @@ export default function ConfirmationPage() {
     event.preventDefault();
     setErrors('');
     try {
-      await confirmSignUp({ username: email, confirmationCode: code });
+      await confirmSignUp({ username: email || params.username, confirmationCode: code });
       window.location.href = "/";
     } catch (error) {
       console.error("Confirm error:", error);
