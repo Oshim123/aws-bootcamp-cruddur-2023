@@ -13,3 +13,4 @@ watchtower
 
 blinker
 rollbar
+PyJWT==2.8.0
