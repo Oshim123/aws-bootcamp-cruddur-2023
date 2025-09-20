@@ -19,7 +19,7 @@ export default function SignupPage() {
 
     try {
       const { isSignUpComplete, userId, nextStep } = await signUp({
-        username: email,
+        username,
         password,
         options: {
           userAttributes: {
