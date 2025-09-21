@@ -102,7 +102,6 @@ def rollbar_test():
 # ---------------- Cognito JWT Validation ----------------
 COGNITO_REGION = os.getenv("AWS_COGNITO_REGION")
 USERPOOL_ID = os.getenv("AWS_COGNITO_USERPOOL_ID")
-CLIENT_ID = os.getenv("AWS_COGNITO_CLIENT_ID")
 
 def get_jwks():
     if not COGNITO_REGION or not USERPOOL_ID:
@@ -129,7 +128,6 @@ def token_required(f):
         if not token:
             return {"error": "Token missing"}, 401
 
-        # If JWKS not available, skip validation for now
         if not jwks:
             print("Warning: JWKS not available, skipping token validation")
             request.user = {"username": "test_user"}
@@ -139,11 +137,12 @@ def token_required(f):
             header = jwt.get_unverified_header(token)
             key = next(k for k in jwks["keys"] if k["kid"] == header["kid"])
             public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
+
             decoded = jwt.decode(
                 token,
                 public_key,
                 algorithms=["RS256"],
-                audience=CLIENT_ID
+                issuer=f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USERPOOL_ID}"
             )
             request.user = decoded
         except Exception as e:
@@ -158,6 +157,7 @@ def token_required(f):
 @app.route("/api/activities/home", methods=["GET"])
 @cross_origin()
 @xray_recorder.capture("activities_home")
+@token_required
 def data_home():
     with tracer.start_as_current_span("custom.activities_home") as span:
         span.set_attribute("user.handle", "test_user")
@@ -168,7 +168,6 @@ def data_home():
 @app.route("/api/activities/notifications", methods=["GET"])
 @cross_origin()
 def data_notifications():
-    # Return mock data for now
     data = [
         {
             'uuid': '68f126b0-1ceb-4a33-88be-d90fa7109eee',
