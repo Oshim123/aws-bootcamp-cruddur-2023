@@ -1,4 +1,4 @@
-// HomeFeedPage.js - Improved version with proper v6 auth
+// HomeFeedPage.js - Fixed version with correct idToken usage
 import './HomeFeedPage.css';
 import React from "react";
 
@@ -22,23 +22,19 @@ export default function HomeFeedPage() {
   const loadData = async () => {
     try {
       const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/home`;
-      
+
       let headers = {
         'Content-Type': 'application/json'
       };
 
-      // Try to get v6 auth session
+      // ✅ Use idToken (not accessToken) for backend auth
       try {
         const session = await fetchAuthSession();
-        if (session?.tokens?.accessToken) {
-          headers['Authorization'] = `Bearer ${session.tokens.accessToken.toString()}`;
+        if (session?.tokens?.idToken) {
+          headers['Authorization'] = `Bearer ${session.tokens.idToken.toString()}`;
         }
       } catch (authErr) {
-        // If no auth session, try fallback to localStorage (for compatibility)
-        const token = localStorage.getItem("access_token");
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+        console.log("No auth session", authErr);
       }
 
       const res = await fetch(backend_url, {
@@ -50,10 +46,10 @@ export default function HomeFeedPage() {
       if (res.status === 200) {
         setActivities(resJson);
       } else {
-        console.log(res);
+        console.log("Backend error:", res.status, resJson);
       }
     } catch (err) {
-      console.log(err);
+      console.log("Fetch error:", err);
     }
   };
 
