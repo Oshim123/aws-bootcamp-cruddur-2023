@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 import os
 
 from services.home_activities import *
@@ -30,7 +30,6 @@ import watchtower
 import logging
 
 # Rollbar ------
-from time import strftime
 import rollbar
 import rollbar.contrib.flask
 from flask import got_request_exception
@@ -46,7 +45,6 @@ app = Flask(__name__)
 # ---------------- CloudWatch Logger ----------------
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
-
 console_handler = logging.StreamHandler()
 cw_handler = watchtower.CloudWatchLogHandler(log_group="cruddur")
 LOGGER.addHandler(console_handler)
@@ -73,15 +71,13 @@ RequestsInstrumentor().instrument()
 
 # ---------------- CORS ----------------
 frontend = os.getenv("FRONTEND_URL")
-backend = os.getenv("BACKEND_URL")
-origins = [frontend, backend]
-cors = CORS(
+
+CORS(
     app,
-    resources={r"/api/*": {"origins": origins}},
+    resources={r"/api/*": {"origins": [frontend]}},
+    supports_credentials=True,
     expose_headers=["Authorization", "Location", "Link"],
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
-    methods=["OPTIONS", "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
-    supports_credentials=True
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Authorization"]
 )
 
 # ---------------- Rollbar init ----------------
@@ -101,9 +97,8 @@ def rollbar_test():
     rollbar.report_message("Hello World!", "warning")
     return "Hello World!"
 
-
 # ---------------- Cognito JWT Validation ----------------
-COGNITO_REGION = os.getenv("AWS_COGNITO_REGION")     # ✅ backend vars
+COGNITO_REGION = os.getenv("AWS_COGNITO_REGION")
 USERPOOL_ID = os.getenv("AWS_COGNITO_USERPOOL_ID")
 CLIENT_ID = os.getenv("AWS_COGNITO_CLIENT_ID")
 
@@ -130,25 +125,23 @@ def token_required(f):
                 algorithms=["RS256"],
                 audience=CLIENT_ID
             )
-            request.user = decoded  # attach decoded claims
+            request.user = decoded
         except Exception as e:
             return {"error": f"Invalid token: {str(e)}"}, 401
 
         return f(*args, **kwargs)
     return decorated
 
-
 # ---------------- Routes ----------------
 @app.route("/api/activities/home", methods=["GET"])
 @xray_recorder.capture("activities_home")
-@token_required
+#@token_required
 def data_home():
     with tracer.start_as_current_span("custom.activities_home") as span:
-        span.set_attribute("user.handle", request.user.get("username", "anonymous"))
+        span.set_attribute("user.handle", "test_user")
         data = HomeActivities.run()
         span.set_attribute("result.count", len(data) if data else 0)
         return data, 200
-
 
 @app.route("/api/activities/@<string:handle>", methods=["GET"])
 @xray_recorder.capture("activities_users")
@@ -160,8 +153,7 @@ def data_handle(handle):
     else:
         return model["data"], 200
 
-
-# (other routes can stay unprotected for now until you want them gated by login)
+# (other routes can stay unprotected until you want them gated by login)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=4567, debug=True)

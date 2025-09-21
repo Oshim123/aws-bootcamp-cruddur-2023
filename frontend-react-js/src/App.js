@@ -8,6 +8,7 @@ import RecoverPage from './pages/RecoverPage';
 import MessageGroupsPage from './pages/MessageGroupsPage';
 import MessageGroupPage from './pages/MessageGroupPage';
 import ConfirmationPage from './pages/ConfirmationPage';
+import NotificationsFeedPage from './pages/NotificationsFeedPage';
 
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -15,22 +16,19 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 // ✅ Amplify v6 imports
 import { Amplify } from 'aws-amplify';
 
-// ✅ Amplify v6 configuration with your EU West 2 settings
+// ✅ Amplify v6 configuration (your EU West 2 Cognito settings)
 Amplify.configure({
   Auth: {
     Cognito: {
       region: 'eu-west-2',
       userPoolId: 'eu-west-2_HKcHnrgiB',
       userPoolClientId: 'cte794vg6jirnr3eqtt2v500i',
-      loginWith: { 
-        email: true   // allow sign-in with email
-        // you could also add: username: true, phone: true
+      loginWith: {
+        email: true // allow sign-in with email
       }
     }
   }
 });
-
-
 
 // ✅ React Router setup
 const router = createBrowserRouter([
@@ -41,7 +39,8 @@ const router = createBrowserRouter([
   { path: "/signup", element: <SignupPage /> },
   { path: "/signin", element: <SigninPage /> },
   { path: "/confirm", element: <ConfirmationPage /> },
-  { path: "/forgot", element: <RecoverPage /> }
+  { path: "/forgot", element: <RecoverPage /> },
+  { path: "/notifications", element: <NotificationsFeedPage /> } // 👈 added
 ]);
 
 function App() {

@@ -1,14 +1,14 @@
 import './NotificationsFeedPage.css';
 import React from "react";
 
-import DesktopNavigation  from '../components/DesktopNavigation';
-import DesktopSidebar     from '../components/DesktopSidebar';
+import DesktopNavigation from '../components/DesktopNavigation';
+import DesktopSidebar from '../components/DesktopSidebar';
 import ActivityFeed from '../components/ActivityFeed';
 import ActivityForm from '../components/ActivityForm';
 import ReplyForm from '../components/ReplyForm';
 
-// [TODO] Authenication
-import Cookies from 'js-cookie'
+// ✅ Amplify v6 imports
+import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 
 export default function NotificationsFeedPage() {
   const [activities, setActivities] = React.useState([]);
@@ -20,62 +20,76 @@ export default function NotificationsFeedPage() {
 
   const loadData = async () => {
     try {
-      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/notifications`
+      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/notifications`;
+
+      let headers = { 'Content-Type': 'application/json' };
+      try {
+        const session = await fetchAuthSession();
+        if (session?.tokens?.idToken) {
+          headers['Authorization'] = `Bearer ${session.tokens.idToken.toString()}`;
+        }
+      } catch (authErr) {
+        console.log("No auth session", authErr);
+      }
+
       const res = await fetch(backend_url, {
-        method: "GET"
+        method: "GET",
+        headers: headers
       });
+
       let resJson = await res.json();
       if (res.status === 200) {
-        setActivities(resJson)
+        setActivities(resJson);
       } else {
-        console.log(res)
+        console.log("Backend error:", res.status, resJson);
       }
     } catch (err) {
-      console.log(err);
+      console.log("Fetch error:", err);
     }
   };
 
   const checkAuth = async () => {
-    console.log('checkAuth')
-    // [TODO] Authenication
-    if (Cookies.get('user.logged_in')) {
+    try {
+      const cognito_user = await getCurrentUser();
+      console.log('user', cognito_user);
       setUser({
-        display_name: Cookies.get('user.name'),
-        handle: Cookies.get('user.username')
-      })
+        display_name: cognito_user.signInDetails?.loginId || cognito_user.username,
+        handle: cognito_user.username
+      });
+    } catch (err) {
+      console.log("No authenticated user", err);
     }
   };
 
-  React.useEffect(()=>{
-    //prevents double call
+  React.useEffect(() => {
     if (dataFetchedRef.current) return;
     dataFetchedRef.current = true;
 
     loadData();
     checkAuth();
-  }, [])
+  }, []);
 
   return (
     <article>
       <DesktopNavigation user={user} active={'notifications'} setPopped={setPopped} />
       <div className='content'>
-        <ActivityForm  
+        <ActivityForm
           popped={popped}
-          setPopped={setPopped} 
-          setActivities={setActivities} 
+          setPopped={setPopped}
+          setActivities={setActivities}
         />
-        <ReplyForm 
-          activity={replyActivity} 
-          popped={poppedReply} 
-          setPopped={setPoppedReply} 
-          setActivities={setActivities} 
-          activities={activities} 
+        <ReplyForm
+          activity={replyActivity}
+          popped={poppedReply}
+          setPopped={setPoppedReply}
+          setActivities={setActivities}
+          activities={activities}
         />
-        <ActivityFeed 
-          title="Notifications" 
-          setReplyActivity={setReplyActivity} 
-          setPopped={setPoppedReply} 
-          activities={activities} 
+        <ActivityFeed
+          title="Notifications"
+          setReplyActivity={setReplyActivity}
+          setPopped={setPoppedReply}
+          activities={activities}
         />
       </div>
       <DesktopSidebar user={user} />
