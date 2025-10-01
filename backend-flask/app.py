@@ -142,7 +142,8 @@ def token_required(f):
                 token,
                 public_key,
                 algorithms=["RS256"],
-                issuer=f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USERPOOL_ID}"
+                issuer=f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USERPOOL_ID}",
+                audience="cte794vg6jirnr3eqtt2v500i"
             )
             request.user = decoded
         except Exception as e:
